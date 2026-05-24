@@ -1,0 +1,140 @@
+/**
+ * 全局样式
+ * 深色主题基础样式、重置样式、排版和滚动条定制
+ */
+
+@import './variables.scss';
+@import './transitions.scss';
+
+// ===== CSS Reset =====
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-base);
+  color: var(--color-text);
+  background-color: var(--color-background);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+// ===== 排版 =====
+h1, h2, h3, h4, h5, h6 {
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text);
+}
+
+h1 { font-size: var(--font-size-3xl); }
+h2 { font-size: var(--font-size-2xl); }
+h3 { font-size: var(--font-size-xl); }
+h4 { font-size: var(--font-size-lg); }
+h5 { font-size: var(--font-size-md); }
+h6 { font-size: var(--font-size-base); }
+
+p {
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-base);
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+
+  &:hover {
+    color: var(--color-primary-hover);
+  }
+}
+
+// ===== 列表重置 =====
+ul, ol {
+  list-style: none;
+}
+
+// ===== 图片 =====
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+// ===== 按钮重置 =====
+button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  outline: none;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+// ===== 输入框重置 =====
+input, textarea {
+  border: none;
+  outline: none;
+  background: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--color-text);
+
+  &::placeholder {
+    color: var(--color-text-disabled);
+  }
+}
+
+// ===== 滚动条样式 =====
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-full);
+  transition: background-color var(--transition-fast);
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.35);
+  }
+}
+
+// ===== 文本选中样式 =====
+::selection {
+  background-color: var(--color-primary);
+  color: var(--color-text);
+}
+
+// ===== 焦点样式（无障碍） =====
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+// 过渡动画基础类已移至 transitions.scss

@@ -1,0 +1,138 @@
+/**
+ * 过渡动画与交互细节
+ * 提供可复用的过渡动画类，包括页面切换、列表动画、按钮反馈和卡片悬浮效果
+ * 所有动画时间使用 variables.scss 中定义的 CSS 变量
+ *
+ * Validates: Requirements 6.4
+ */
+
+// ===== 页面切换过渡（fade + slide） =====
+// 用于 Vue <transition> 组件的 name="page-fade"
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity var(--transition-base), transform var(--transition-base);
+}
+
+.page-fade-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.page-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-12px);
+}
+
+// 纯 fade 过渡（用于模态框、弹出层等）
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--transition-base);
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+// slide-up 过渡（用于底部弹出元素）
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: transform var(--transition-base), opacity var(--transition-base);
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translateY(10px);
+  opacity: 0;
+}
+
+// ===== 列表项交错进入动画（TransitionGroup） =====
+// 用于 Vue <TransitionGroup> 的 name="list-stagger"
+.list-stagger-move,
+.list-stagger-enter-active,
+.list-stagger-leave-active {
+  transition: all var(--transition-base);
+}
+
+.list-stagger-enter-from {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+.list-stagger-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+// 确保离开的元素脱离文档流，以便 FLIP 动画正确计算
+.list-stagger-leave-active {
+  position: absolute;
+  width: 100%;
+}
+
+// ===== 按钮交互反馈动画 =====
+// 通用按钮按下缩放效果
+.btn-press {
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
+
+  &:active {
+    transform: scale(0.92);
+    opacity: 0.85;
+  }
+}
+
+// 图标按钮按下效果（更小的缩放）
+.btn-icon-press {
+  transition: transform var(--transition-fast), color var(--transition-fast);
+
+  &:active {
+    transform: scale(0.85);
+  }
+}
+
+// ===== 卡片悬浮抬起效果 =====
+// 用于歌单卡片、曲目项等可交互卡片
+.card-lift {
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-base);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+// ===== 平滑滚动行为 =====
+// 应用于需要平滑滚动的容器（歌词面板、曲目列表）
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+// ===== 缩放进入动画 =====
+// 用于弹出菜单、下拉框等
+.scale-enter-active,
+.scale-leave-active {
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
+  transform-origin: top center;
+}
+
+.scale-enter-from,
+.scale-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+// ===== 弹性动画 =====
+// 用于需要弹性效果的元素（如收藏按钮点击）
+.spring-pop {
+  transition: transform var(--transition-spring);
+
+  &:active {
+    transform: scale(0.9);
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "appId": "com.musicplayer.app",
+  "productName": "音乐播放器",
+  "directories": {
+    "output": "release"
+  },
+  "files": [
+    "dist/**/*",
+    "dist-electron/**/*"
+  ],
+  "win": {
+    "target": ["nsis"],
+    "icon": "public/icon.png",
+    "signAndEditExecutable": false,
+    "sign": null,
+    "certificateSubjectName": null,
+    "certificateSha1": null
+  },
+  "mac": {
+    "target": ["dmg"],
+    "icon": "public/icon.png",
+    "category": "public.app-category.music",
+    "identity": null
+  },
+  "nsis": {
+    "artifactName": "music-player-3.1.0-wechat-fix.exe",
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  }
+}
