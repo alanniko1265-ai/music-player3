@@ -38,4 +38,29 @@ export function registerIPCHandlers(): void {
       window.focus()
     }
   })
+
+  ipcMain.on('window:minimize', (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (window) {
+      window.minimize()
+    }
+  })
+
+  ipcMain.on('window:toggle-maximize', (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (window) {
+      if (window.isMaximized()) {
+        window.unmaximize()
+      } else {
+        window.maximize()
+      }
+    }
+  })
+
+  ipcMain.on('window:close', (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (window) {
+      window.close()
+    }
+  })
 }

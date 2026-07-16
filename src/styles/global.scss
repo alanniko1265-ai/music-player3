@@ -1,12 +1,6 @@
-/**
- * 全局样式
- * 深色主题基础样式、重置样式、排版和滚动条定制
- */
-
 @import './variables.scss';
 @import './transitions.scss';
 
-// ===== CSS Reset =====
 *,
 *::before,
 *::after {
@@ -20,6 +14,7 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  background: var(--color-background);
 }
 
 body {
@@ -32,13 +27,20 @@ body {
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
+  letter-spacing: 0;
+  background-image: linear-gradient(180deg, #080a08 0%, #050605 100%);
 }
 
-// ===== 排版 =====
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-tight);
   color: var(--color-text);
+  letter-spacing: 0;
 }
 
 h1 { font-size: var(--font-size-3xl); }
@@ -63,19 +65,17 @@ a {
   }
 }
 
-// ===== 列表重置 =====
-ul, ol {
+ul,
+ol {
   list-style: none;
 }
 
-// ===== 图片 =====
 img {
   max-width: 100%;
   height: auto;
   display: block;
 }
 
-// ===== 按钮重置 =====
 button {
   border: none;
   background: none;
@@ -91,8 +91,8 @@ button {
   }
 }
 
-// ===== 输入框重置 =====
-input, textarea {
+input,
+textarea {
   border: none;
   outline: none;
   background: none;
@@ -105,7 +105,6 @@ input, textarea {
   }
 }
 
-// ===== 滚动条样式 =====
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -116,25 +115,36 @@ input, textarea {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(159, 247, 177, 0.18);
   border-radius: var(--radius-full);
   transition: background-color var(--transition-fast);
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.35);
+    background-color: rgba(159, 247, 177, 0.32);
   }
 }
 
-// ===== 文本选中样式 =====
 ::selection {
   background-color: var(--color-primary);
-  color: var(--color-text);
+  color: #071009;
 }
 
-// ===== 焦点样式（无障碍） =====
 :focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 1px solid rgba(159, 247, 177, 0.52);
   outline-offset: 2px;
 }
 
-// 过渡动画基础类已移至 transitions.scss
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+#app {
+  isolation: isolate;
+}

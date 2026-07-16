@@ -3,62 +3,62 @@
     class="lyrics-panel"
     :class="{ 'lyrics-panel--expanded': isExpanded }"
     role="region"
-    aria-label="歌词面板"
+    aria-label="Lyrics panel"
   >
-    <!-- Toggle button -->
     <button
       class="lyrics-panel__toggle"
       :aria-expanded="isExpanded"
       aria-controls="lyrics-content"
       @click="$emit('toggle-expand')"
     >
-      <svg
-        class="lyrics-panel__toggle-icon"
-        :class="{ 'lyrics-panel__toggle-icon--expanded': isExpanded }"
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-      >
-        <path
-          d="M7 10l5 5 5-5"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-      </svg>
-      <span class="lyrics-panel__toggle-text">歌词</span>
+      <span class="lyrics-panel__toggle-mark">{{ isExpanded ? '[-]' : '[+]' }}</span>
+      <span class="lyrics-panel__toggle-text">LYRICS</span>
     </button>
 
-    <!-- Lyrics content -->
+    <div
+      v-show="isExpanded && metadataLines.length > 0"
+      class="lyrics-panel__metadata"
+      aria-label="歌曲制作信息"
+    >
+      <span
+        v-for="entry in metadataLines"
+        :key="`meta-${entry.index}`"
+        class="lyrics-panel__metadata-item"
+      >
+        {{ entry.line.text }}
+      </span>
+    </div>
+
     <div
       v-show="isExpanded"
       id="lyrics-content"
       ref="lyricsContainerRef"
       class="lyrics-panel__content"
     >
-      <!-- No lyrics placeholder -->
       <div v-if="lyrics.length === 0" class="lyrics-panel__empty">
-        <span>暂无歌词</span>
+        <span>[ no lyrics loaded ]</span>
       </div>
 
-      <!-- Lyrics lines -->
+      <div v-else-if="timedLyrics.length === 0" class="lyrics-panel__empty">
+        <span>[ no timed lyrics ]</span>
+      </div>
+
       <div v-else class="lyrics-panel__lines">
         <div
-          v-for="(line, index) in lyrics"
-          :key="index"
+          v-for="(entry, index) in timedLyrics"
+          :key="entry.index"
           :ref="(el) => setLineRef(el, index)"
           class="lyrics-panel__line"
-          :class="{ 'lyrics-panel__line--active': index === activeLine }"
+          :class="lineClasses(index)"
           role="button"
           :tabindex="0"
           :aria-current="index === activeLine ? 'true' : undefined"
-          @click="$emit('seek', line.time)"
-          @keydown.enter="$emit('seek', line.time)"
-          @keydown.space.prevent="$emit('seek', line.time)"
+          @click="$emit('seek', entry.line.time)"
+          @keydown.enter="$emit('seek', entry.line.time)"
+          @keydown.space.prevent="$emit('seek', entry.line.time)"
         >
-          {{ line.text }}
+          <span class="lyrics-panel__line-prefix">{{ index === activeLine ? '>' : '.' }}</span>
+          <span class="lyrics-panel__line-text">{{ entry.line.text }}</span>
         </div>
       </div>
     </div>
@@ -66,8 +66,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, type ComponentPublicInstance } from 'vue'
-import type { LyricLine } from '../types/index'
+import { computed, nextTick, ref, watch, type ComponentPublicInstance } from 'vue'
+import type { LyricLine } from '@/types'
 
 export interface LyricsPanelProps {
   lyrics: LyricLine[]
@@ -85,20 +85,23 @@ defineEmits<LyricsPanelEmits>()
 
 const lyricsContainerRef = ref<HTMLElement | null>(null)
 const lineRefs = ref<(HTMLElement | null)[]>([])
+const metadataPattern = /^(?:作?词|作?曲|编曲|演唱|制作人|监制|混音|录音|lyrics?|composer|arranger|producer)\s*[:：]/i
+
+const indexedLyrics = computed(() => props.lyrics.map((line, index) => ({ line, index })))
+const metadataLines = computed(() => indexedLyrics.value.filter(({ line }) => metadataPattern.test(line.text.trim())))
+const timedLyrics = computed(() => indexedLyrics.value.filter(({ line }) => !metadataPattern.test(line.text.trim())))
 
 function setLineRef(el: Element | ComponentPublicInstance | null, index: number) {
   lineRefs.value[index] = el as HTMLElement | null
 }
 
-/**
- * Compute the active lyric line index based on currentTime.
- * Uses the same logic as LyricsService.getActiveLine (binary search).
- */
 const activeLine = computed(() => {
-  const { lyrics, currentTime } = props
-  if (!lyrics || lyrics.length === 0) {
+  const lyrics = timedLyrics.value.map(({ line }) => line)
+  const { currentTime } = props
+  if (!lyrics.length) {
     return -1
   }
+
   if (currentTime < lyrics[0].time) {
     return -1
   }
@@ -120,10 +123,17 @@ const activeLine = computed(() => {
   return result
 })
 
-/**
- * Auto-scroll to keep the active line centered in the viewport
- */
-watch(activeLine, async (newIndex) => {
+function lineClasses(index: number) {
+  const distance = activeLine.value < 0 ? Number.POSITIVE_INFINITY : Math.abs(index - activeLine.value)
+
+  return {
+    'lyrics-panel__line--active': distance === 0,
+    'lyrics-panel__line--near': distance === 1,
+    'lyrics-panel__line--context': distance === 2,
+  }
+}
+
+watch([activeLine, () => props.lyrics, () => props.isExpanded], async ([newIndex]) => {
   if (newIndex < 0 || !props.isExpanded) return
 
   await nextTick()
@@ -133,13 +143,18 @@ watch(activeLine, async (newIndex) => {
 
   if (lineEl && container) {
     const containerHeight = container.clientHeight
-    const lineTop = lineEl.offsetTop
-    const lineHeight = lineEl.clientHeight
-    const scrollTarget = lineTop - containerHeight / 2 + lineHeight / 2
+    const maxScroll = Math.max(0, container.scrollHeight - containerHeight)
+
+    if (containerHeight === 0 || maxScroll === 0) return
+
+    const containerRect = container.getBoundingClientRect()
+    const lineRect = lineEl.getBoundingClientRect()
+    const lineTop = lineRect.top - containerRect.top + container.scrollTop
+    const scrollTarget = lineTop - (containerHeight - lineRect.height) / 2
 
     container.scrollTo({
-      top: scrollTarget,
-      behavior: 'smooth'
+      top: Math.max(0, Math.min(scrollTarget, maxScroll)),
+      behavior: 'smooth',
     })
   }
 })
@@ -148,124 +163,123 @@ watch(activeLine, async (newIndex) => {
 <style scoped lang="scss">
 .lyrics-panel {
   display: flex;
-  flex-direction: column;
   width: 100%;
-  border-radius: var(--radius-md, 12px);
-  background-color: var(--color-surface, #1A1A2E);
+  height: 100%;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
   overflow: hidden;
-  transition: all var(--transition-base, 250ms ease);
-
-  &--expanded {
-    flex: 1;
-  }
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: rgba(8, 10, 8, 0.5);
 
   &__toggle {
     display: flex;
+    flex: 0 0 auto;
     align-items: center;
-    gap: var(--spacing-sm, 8px);
-    padding: var(--spacing-md, 12px) var(--spacing-base, 16px);
-    background: none;
-    border: none;
-    color: var(--color-text-secondary, #B3B3B3);
-    cursor: pointer;
-    font-size: var(--font-size-base, 14px);
-    transition: color var(--transition-fast, 150ms ease);
+    gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--color-divider);
+    color: var(--color-text-secondary);
 
     &:hover {
-      color: var(--color-text, #FFFFFF);
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--color-primary, #1DB954);
-      outline-offset: -2px;
-      border-radius: var(--radius-sm, 4px);
+      color: var(--color-text);
     }
   }
 
-  &__toggle-icon {
-    width: 20px;
-    height: 20px;
-    transition: transform var(--transition-base, 250ms ease);
-
-    &--expanded {
-      transform: rotate(180deg);
-    }
-  }
-
-  &__toggle-text {
-    font-weight: var(--font-weight-medium, 500);
+  &__toggle-mark {
+    color: var(--color-primary);
   }
 
   &__content {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
-    padding: var(--spacing-base, 16px);
-    padding-top: 0;
-    max-height: 400px;
+    overscroll-behavior: contain;
     scroll-behavior: smooth;
+    padding: 10px 0;
+  }
 
-    // Custom scrollbar
-    &::-webkit-scrollbar {
-      width: 4px;
-    }
+  &__metadata {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    max-height: 68px;
+    padding: 8px 14px;
+    overflow-y: auto;
+    border-bottom: 1px solid var(--color-divider);
+    color: var(--color-text-disabled);
+    font-size: var(--font-size-xs);
+  }
 
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background-color: var(--color-border, rgba(255, 255, 255, 0.1));
-      border-radius: var(--radius-full, 9999px);
-    }
+  &__metadata-item {
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   &__empty {
     display: flex;
+    min-height: 120px;
     align-items: center;
     justify-content: center;
-    min-height: 120px;
-    color: var(--color-text-secondary, #B3B3B3);
-    font-size: var(--font-size-base, 14px);
+    color: var(--color-text-disabled);
   }
 
   &__lines {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-md, 12px);
-    padding: var(--spacing-lg, 24px) 0;
+    gap: 8px;
+    padding: 10px 12px;
   }
 
   &__line {
-    padding: var(--spacing-sm, 8px) var(--spacing-md, 12px);
-    border-radius: var(--radius-sm, 4px);
-    color: var(--color-text-secondary, #B3B3B3);
-    font-size: var(--font-size-base, 14px);
-    line-height: var(--line-height-relaxed, 1.75);
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-secondary);
     cursor: pointer;
-    transition:
-      color var(--transition-base, 250ms ease),
-      font-size var(--transition-base, 250ms ease),
-      transform var(--transition-base, 250ms ease),
-      background-color var(--transition-fast, 150ms ease);
-    opacity: 0.6;
+    opacity: 0.4;
+    transition: opacity var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
 
     &:hover {
-      background-color: var(--color-surface-hover, #222240);
-      opacity: 0.9;
+      border-color: var(--color-border);
+      background: rgba(18, 24, 18, 0.56);
     }
 
     &:focus-visible {
-      outline: 2px solid var(--color-primary, #1DB954);
+      outline: 2px solid var(--color-primary);
       outline-offset: 2px;
     }
 
     &--active {
-      color: var(--color-primary, #1DB954);
-      font-size: var(--font-size-lg, 18px);
-      font-weight: var(--font-weight-semibold, 600);
+      color: var(--color-text);
+      border-color: var(--color-border);
+      background: rgba(18, 24, 18, 0.72);
       opacity: 1;
-      transform: scale(1.02);
+      transform: translateX(2px);
     }
+
+    &--near {
+      opacity: 0.72;
+    }
+
+    &--context {
+      opacity: 0.54;
+    }
+
+  }
+
+  &__line-prefix {
+    color: var(--color-primary);
+  }
+
+  &__line-text {
+    line-height: 1.7;
   }
 }
 </style>

@@ -118,6 +118,7 @@ describe('PlayerStore', () => {
       expect(store.volume).toBe(80);
       expect(store.playMode).toBe(PlayMode.Sequential);
       expect(store.playlist).toEqual([]);
+      expect(store.playbackActivity).toBe('idle');
       expect(store.initialized).toBe(true);
     });
 
@@ -175,7 +176,7 @@ describe('PlayerStore', () => {
 
       expect(store.currentTrack).toEqual(track);
       expect(store.isPlaying).toBe(true);
-      expect(mockAdapter.getTrackUrl).toHaveBeenCalledWith('1');
+      expect(mockAdapter.getTrackUrl).toHaveBeenCalledWith('1', 'standard');
     });
 
     it('should update playlist when playing a new track', async () => {
@@ -184,6 +185,24 @@ describe('PlayerStore', () => {
 
       expect(store.playlist).toHaveLength(1);
       expect(store.playlist[0]).toEqual(track);
+    });
+  });
+
+  describe('playback activity', () => {
+    it('tracks buffering and seeking events from the audio element', async () => {
+      await store.playTrack(createTrack('1'));
+
+      mockAudio._emit('waiting');
+      expect(store.playbackActivity).toBe('buffering');
+
+      mockAudio._emit('playing');
+      expect(store.playbackActivity).toBe('idle');
+
+      mockAudio._emit('seeking');
+      expect(store.playbackActivity).toBe('seeking');
+
+      mockAudio._emit('seeked');
+      expect(store.playbackActivity).toBe('idle');
     });
   });
 

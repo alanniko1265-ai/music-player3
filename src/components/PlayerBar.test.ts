@@ -22,6 +22,12 @@ function calcProgressPercent(currentTime: number, duration: number): number {
   return (currentTime / duration) * 100
 }
 
+function calcProgressPreviewTime(pointerX: number, left: number, width: number, duration: number): number {
+  if (duration === 0 || width <= 0) return 0
+  const percent = Math.max(0, Math.min(1, (pointerX - left) / width))
+  return percent * duration
+}
+
 function getNextPlayMode(current: PlayMode): PlayMode {
   const modes = [PlayMode.Sequential, PlayMode.Shuffle, PlayMode.RepeatOne]
   const currentIndex = modes.indexOf(current)
@@ -105,6 +111,15 @@ describe('PlayerBar component logic', () => {
 
     it('should return correct percentage for arbitrary position', () => {
       expect(calcProgressPercent(60, 240)).toBe(25)
+    })
+
+    it('should calculate hover time from the pointer position', () => {
+      expect(calcProgressPreviewTime(150, 50, 200, 240)).toBe(120)
+    })
+
+    it('should clamp hover time to the track bounds', () => {
+      expect(calcProgressPreviewTime(0, 50, 200, 240)).toBe(0)
+      expect(calcProgressPreviewTime(300, 50, 200, 240)).toBe(240)
     })
   })
 

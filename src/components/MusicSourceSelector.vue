@@ -1,22 +1,21 @@
 <template>
   <div class="source-selector">
-    <span class="source-selector__label">音乐源</span>
     <div class="source-selector__buttons">
       <button
         class="source-btn"
         :class="{ 'source-btn--active': currentSource === 'qq' }"
         @click="switchSource('qq')"
-        title="QQ 音乐"
+        title="QQ Music"
       >
-        QQ
+        [QQ]
       </button>
       <button
         class="source-btn"
         :class="{ 'source-btn--active': currentSource === 'netease' }"
         @click="switchSource('netease')"
-        title="网易云音乐"
+        title="Netease"
       >
-        云
+        [WY]
       </button>
     </div>
   </div>
@@ -24,7 +23,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { MusicSource } from '@/types/index'
+import type { MusicSource } from '@/types'
 
 const currentSource = ref<MusicSource>('qq')
 
@@ -41,53 +40,29 @@ defineExpose({ currentSource })
 </script>
 
 <style scoped>
-.source-selector {
-  padding: var(--spacing-md) var(--spacing-lg);
-  margin-top: auto;
-  margin-bottom: var(--spacing-sm);
-}
-
-.source-selector__label {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 6px;
-  display: block;
-}
-
 .source-selector__buttons {
-  display: flex;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .source-btn {
-  flex: 1;
-  padding: 6px 0;
+  padding: 7px 0;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: transparent;
+  border-radius: var(--radius-sm);
+  background: rgba(8, 10, 8, 0.58);
   color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
   transition: all var(--transition-fast);
-  text-align: center;
 }
 
 .source-btn:hover {
-  background: var(--color-surface-hover);
   color: var(--color-text);
+  border-color: var(--color-primary);
 }
 
 .source-btn--active {
-  background: var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(159, 247, 177, 0.1);
   border-color: var(--color-primary);
-  color: #fff;
-}
-
-.source-btn--active:hover {
-  background: var(--color-primary);
-  color: #fff;
 }
 </style>

@@ -23,6 +23,7 @@ vi.mock('electron', () => {
     },
     BrowserWindow: vi.fn(),
     app: {
+      isPackaged: false,
       quit: vi.fn()
     },
     __mockTrayInstance: mockTrayInstance
@@ -33,7 +34,7 @@ vi.mock('path', () => ({
   join: vi.fn().mockReturnValue('/mock/path/icon.svg')
 }))
 
-import { Tray, Menu } from 'electron'
+import { Tray, Menu, nativeImage } from 'electron'
 import { createTray, updateTooltip, destroyTray } from './tray-manager'
 
 function getMockTrayInstance() {
@@ -67,6 +68,26 @@ describe('TrayManager', () => {
   })
 
   describe('createTray', () => {
+    it('uses the bundled tray asset when it is available', () => {
+      const bundledIcon = { isEmpty: () => false }
+      ;(nativeImage.createFromPath as ReturnType<typeof vi.fn>).mockReturnValueOnce(bundledIcon)
+
+      createTray(mockWindow as any)
+
+      expect(nativeImage.createFromPath).toHaveBeenCalled()
+      expect(Tray).toHaveBeenCalledWith(bundledIcon)
+    })
+
+    it('creates a transparent vinyl fallback instead of a solid square', () => {
+      createTray(mockWindow as any)
+
+      const [canvas] = (nativeImage.createFromBuffer as ReturnType<typeof vi.fn>).mock.calls[0]
+      const alphaValues = Array.from({ length: canvas.length / 4 }, (_, index) => canvas[index * 4 + 3])
+
+      expect(alphaValues).toContain(0)
+      expect(alphaValues).toContain(255)
+    })
+
     it('should create a tray icon with default tooltip', () => {
       createTray(mockWindow as any)
       const trayInstance = getMockTrayInstance()

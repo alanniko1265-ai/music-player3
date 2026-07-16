@@ -15,8 +15,13 @@ function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    frame: true,
+    frame: false,
+    titleBarStyle: 'hidden',
+    autoHideMenuBar: true,
     backgroundColor: '#0D0D0D',
+    icon: app.isPackaged
+      ? join(process.resourcesPath, 'icon.png')
+      : join(__dirname, '../public/icon.png'),
     webPreferences: {
       preload: join(__dirname, 'preload.js'),
       contextIsolation: true,

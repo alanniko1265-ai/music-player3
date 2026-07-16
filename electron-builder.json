@@ -8,9 +8,23 @@
     "dist/**/*",
     "dist-electron/**/*"
   ],
+  "extraResources": [
+    {
+      "from": "public/icon.png",
+      "to": "icon.png"
+    },
+    {
+      "from": "public/tray-icon.png",
+      "to": "tray-icon.png"
+    },
+    {
+      "from": "public/tray-icon@2x.png",
+      "to": "tray-icon@2x.png"
+    }
+  ],
   "win": {
     "target": ["nsis"],
-    "icon": "public/icon.png",
+    "icon": "public/icon.ico",
     "signAndEditExecutable": false,
     "sign": null,
     "certificateSubjectName": null,
@@ -23,10 +37,14 @@
     "identity": null
   },
   "nsis": {
-    "artifactName": "music-player-3.1.0-wechat-fix.exe",
+    "artifactName": "MusicPlayer-${version}-Setup.exe",
     "oneClick": false,
     "allowToChangeInstallationDirectory": true,
     "createDesktopShortcut": true,
-    "createStartMenuShortcut": true
+    "createStartMenuShortcut": true,
+    "shortcutName": "音乐播放器",
+    "uninstallDisplayName": "音乐播放器",
+    "installerIcon": "public/icon.ico",
+    "uninstallerIcon": "public/icon.ico"
   }
 }

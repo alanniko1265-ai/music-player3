@@ -1,10 +1,11 @@
 <template>
   <div class="search-input" ref="containerRef">
-    <div class="search-input__field">
-      <svg class="search-input__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8" />
-        <path d="M21 21l-4.35-4.35" />
-      </svg>
+    <div
+      class="search-input__field"
+      :class="{ 'search-input__field--keyboard-focus': isKeyboardFocused }"
+    >
+      <span class="search-input__prompt">$</span>
+      <span class="search-input__command">find</span>
       <input
         ref="inputRef"
         type="text"
@@ -15,6 +16,7 @@
         @keydown.enter="onSubmit"
         @keydown.escape="closeDropdown"
         @focus="onFocus"
+        @blur="onBlur"
         aria-label="搜索音乐"
         aria-autocomplete="list"
         :aria-expanded="showDropdown"
@@ -26,14 +28,13 @@
         aria-label="清空搜索"
         type="button"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 6L6 18M6 6l12 12" />
-        </svg>
+        clear
       </button>
     </div>
+
     <div v-if="showDropdown" class="search-input__dropdown" role="listbox">
       <div v-if="suggestions.length > 0" class="search-input__section">
-        <div class="search-input__section-title">热门搜索</div>
+        <div class="search-input__section-title">联想</div>
         <div
           v-for="(item, index) in suggestions"
           :key="'suggestion-' + index"
@@ -41,14 +42,13 @@
           role="option"
           @click="selectItem(item)"
         >
-          <svg class="search-input__item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-          </svg>
+          <span class="search-input__item-prefix">&gt;</span>
           <span class="search-input__item-text">{{ item }}</span>
         </div>
       </div>
+
       <div v-if="history.length > 0" class="search-input__section">
-        <div class="search-input__section-title">搜索历史</div>
+        <div class="search-input__section-title">历史</div>
         <div
           v-for="(item, index) in history"
           :key="'history-' + index"
@@ -56,10 +56,7 @@
           role="option"
           @click="selectItem(item)"
         >
-          <svg class="search-input__item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
+          <span class="search-input__item-prefix">#</span>
           <span class="search-input__item-text">{{ item }}</span>
         </div>
       </div>
@@ -68,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 export interface SearchInputProps {
   modelValue: string
@@ -80,7 +77,7 @@ export interface SearchInputProps {
 const props = withDefaults(defineProps<SearchInputProps>(), {
   suggestions: () => [],
   history: () => [],
-  placeholder: '搜索歌曲、艺术家、专辑...'
+  placeholder: '输入歌曲、歌手或专辑...',
 })
 
 const emit = defineEmits<{
@@ -93,21 +90,21 @@ const emit = defineEmits<{
 const inputRef = ref<HTMLInputElement | null>(null)
 const containerRef = ref<HTMLElement | null>(null)
 const isFocused = ref(false)
+const isKeyboardFocused = ref(false)
+let lastInteractionWasKeyboard = false
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
-const showDropdown = computed(() => {
-  return isFocused.value && (props.suggestions.length > 0 || props.history.length > 0)
-})
+const showDropdown = computed(() => isFocused.value && (props.suggestions.length > 0 || props.history.length > 0))
 
 function onInput(event: Event) {
   const target = event.target as HTMLInputElement
   const value = target.value
   emit('update:modelValue', value)
 
-  // Debounce suggest event (300ms)
   if (debounceTimer) {
     clearTimeout(debounceTimer)
   }
+
   if (value.trim()) {
     debounceTimer = setTimeout(() => {
       emit('suggest', value.trim())
@@ -130,6 +127,11 @@ function onClear() {
 
 function onFocus() {
   isFocused.value = true
+  isKeyboardFocused.value = lastInteractionWasKeyboard
+}
+
+function onBlur() {
+  isKeyboardFocused.value = false
 }
 
 function closeDropdown() {
@@ -148,12 +150,27 @@ function handleClickOutside(event: MouseEvent) {
   }
 }
 
+function handleDocumentKeydown(event: KeyboardEvent) {
+  if (event.key === 'Tab') {
+    lastInteractionWasKeyboard = true
+  }
+}
+
+function handleDocumentPointerDown() {
+  lastInteractionWasKeyboard = false
+  isKeyboardFocused.value = false
+}
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  document.addEventListener('keydown', handleDocumentKeydown, true)
+  document.addEventListener('pointerdown', handleDocumentPointerDown, true)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('keydown', handleDocumentKeydown, true)
+  document.removeEventListener('pointerdown', handleDocumentPointerDown, true)
   if (debounceTimer) {
     clearTimeout(debounceTimer)
   }
@@ -166,65 +183,55 @@ onBeforeUnmount(() => {
   width: 100%;
 
   &__field {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm) var(--spacing-base);
-    background: var(--color-surface);
+    gap: 10px;
+    padding: 12px 14px;
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-full);
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    border-radius: var(--radius-sm);
+    background: rgba(7, 9, 7, 0.72);
 
     &:focus-within {
-      border-color: var(--color-primary);
-      box-shadow: 0 0 0 2px rgba(29, 185, 84, 0.2);
+      border-color: var(--color-border);
+      background: rgba(7, 9, 7, 0.72);
+      box-shadow: none;
+    }
+
+    &--keyboard-focus {
+      border-color: rgba(159, 247, 177, 0.42);
+      box-shadow: inset 0 0 0 1px rgba(159, 247, 177, 0.08);
     }
   }
 
-  &__icon {
-    width: 18px;
-    height: 18px;
+  &__prompt {
+    color: var(--color-primary);
+  }
+
+  &__command {
     color: var(--color-text-secondary);
-    flex-shrink: 0;
+    font-size: var(--font-size-sm);
   }
 
   &__input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
+    min-width: 0;
     color: var(--color-text);
-    font-size: var(--font-size-base);
-    font-family: var(--font-family);
-    line-height: var(--line-height-base);
 
-    &::placeholder {
-      color: var(--color-text-disabled);
+    &:focus,
+    &:focus-visible {
+      outline: none;
+      box-shadow: none;
     }
   }
 
   &__clear {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    background: transparent;
-    border: none;
-    border-radius: var(--radius-full);
+    padding: 6px 10px;
+    border-left: 1px solid var(--color-divider);
     color: var(--color-text-secondary);
-    cursor: pointer;
-    transition: color var(--transition-fast), background var(--transition-fast);
 
     &:hover {
       color: var(--color-text);
-      background: var(--color-surface-hover);
-    }
-
-    svg {
-      width: 14px;
-      height: 14px;
+      border-color: var(--color-primary);
     }
   }
 
@@ -233,55 +240,46 @@ onBeforeUnmount(() => {
     top: calc(100% + var(--spacing-sm));
     left: 0;
     right: 0;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-base);
-    box-shadow: var(--shadow-lg);
     z-index: var(--z-dropdown);
     max-height: 320px;
     overflow-y: auto;
-    padding: var(--spacing-sm) 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: rgba(8, 10, 8, 0.98);
+    box-shadow: var(--shadow-lg);
+    padding: 8px 0;
   }
 
-  &__section {
-    &:not(:first-child) {
-      border-top: 1px solid var(--color-divider);
-      margin-top: var(--spacing-sm);
-      padding-top: var(--spacing-sm);
-    }
+  &__section + &__section {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--color-divider);
   }
 
   &__section-title {
-    padding: var(--spacing-xs) var(--spacing-base);
+    padding: 4px 14px 8px;
+    color: var(--color-accent);
     font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-medium);
-    color: var(--color-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0;
   }
 
   &__item {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm) var(--spacing-base);
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    gap: 8px;
+    padding: 8px 14px;
     cursor: pointer;
-    transition: background var(--transition-fast);
 
     &:hover {
-      background: var(--color-surface-hover);
+      background: rgba(18, 24, 18, 0.72);
     }
   }
 
-  &__item-icon {
-    width: 14px;
-    height: 14px;
-    color: var(--color-text-secondary);
-    flex-shrink: 0;
+  &__item-prefix {
+    color: var(--color-primary);
   }
 
   &__item-text {
-    font-size: var(--font-size-base);
     color: var(--color-text);
     overflow: hidden;
     text-overflow: ellipsis;

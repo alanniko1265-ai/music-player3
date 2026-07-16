@@ -9,7 +9,11 @@ import { defineStore } from 'pinia';
 import type { Track, PlaybackState } from '../types/index';
 import { PlayMode, AudioQuality } from '../types/index';
 import { PlaybackController } from '../services/playback-controller';
-import type { IPlaybackController, PlaybackEvent } from '../services/playback-controller';
+import type {
+  IPlaybackController,
+  PlaybackActivity,
+  PlaybackEvent,
+} from '../services/playback-controller';
 import type { MusicAPIAdapter } from '../services/music-api-adapter';
 import { storageService } from '../services/ipc-renderer';
 
@@ -49,6 +53,8 @@ export const usePlayerStore = defineStore('player', () => {
   const quality = ref<AudioQuality>(AudioQuality.Standard);
   /** 错误消息 */
   const errorMessage = ref<string | null>(null);
+  /** 当前短时播放活动，用于界面区分加载、缓冲和定位 */
+  const playbackActivity = ref<PlaybackActivity>('idle');
   /** 是否已初始化 */
   const initialized = ref(false);
 
@@ -187,6 +193,10 @@ export const usePlayerStore = defineStore('player', () => {
     controller?.setApiAdapter(apiAdapter);
   }
 
+  function getAudioElement(): HTMLAudioElement | null {
+    return controller?.getAudioElement() ?? null;
+  }
+
   /**
    * 设置音质等级
    * 切换后重新获取当前歌曲 URL 并恢复播放位置
@@ -228,6 +238,7 @@ export const usePlayerStore = defineStore('player', () => {
       controller.destroy();
       controller = null;
     }
+    playbackActivity.value = 'idle';
     initialized.value = false;
   }
 
@@ -248,6 +259,9 @@ export const usePlayerStore = defineStore('player', () => {
           playlist.value = controller.getPlaylist();
         }
         debounceSaveState();
+        break;
+      case 'activityChanged':
+        playbackActivity.value = event.activity;
         break;
       case 'error':
         errorMessage.value = event.message;
@@ -392,6 +406,7 @@ export const usePlayerStore = defineStore('player', () => {
     quality,
     playlist,
     errorMessage,
+    playbackActivity,
     initialized,
 
     // Computed
@@ -410,6 +425,7 @@ export const usePlayerStore = defineStore('player', () => {
     setPlayMode,
     setPlaylist,
     setApiAdapter,
+    getAudioElement,
     setQuality,
     clearError,
     destroy,

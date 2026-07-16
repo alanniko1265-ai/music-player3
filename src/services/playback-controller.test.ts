@@ -82,7 +82,7 @@ describe('PlaybackController', () => {
       const track = createTrack('1');
       await controller.play(track);
 
-      expect(mockAdapter.getTrackUrl).toHaveBeenCalledWith('1');
+      expect(mockAdapter.getTrackUrl).toHaveBeenCalledWith('1', 'standard');
       expect(mockAudio.src).toBe('http://example.com/track.mp3');
       expect(mockAudio.play).toHaveBeenCalled();
     });
@@ -144,7 +144,62 @@ describe('PlaybackController', () => {
         expect.objectContaining({ type: 'error' })
       );
       // Should have tried to play next track
-      expect(mockAdapter.getTrackUrl).toHaveBeenCalledWith('2');
+      expect(mockAdapter.getTrackUrl).toHaveBeenCalledWith('2', 'standard');
+    });
+  });
+
+  describe('playback activity', () => {
+    it('emits loading and idle while resolving a track', async () => {
+      const listener = vi.fn();
+      controller.on(listener);
+
+      await controller.play(createTrack('1'));
+
+      const activities = listener.mock.calls
+        .map(([event]) => event)
+        .filter((event) => event.type === 'activityChanged');
+      expect(activities).toEqual([
+        { type: 'activityChanged', activity: 'loading' },
+        { type: 'activityChanged', activity: 'idle' },
+      ]);
+    });
+
+    it('reports buffering until audio starts playing again', async () => {
+      const listener = vi.fn();
+      controller.on(listener);
+      await controller.play(createTrack('1'));
+      listener.mockClear();
+
+      mockAudio._emit('waiting');
+      mockAudio._emit('playing');
+
+      expect(listener).toHaveBeenNthCalledWith(1, {
+        type: 'activityChanged',
+        activity: 'buffering',
+      });
+      expect(listener).toHaveBeenNthCalledWith(2, {
+        type: 'activityChanged',
+        activity: 'idle',
+      });
+    });
+
+    it('reports seeking until the seek completes', async () => {
+      const listener = vi.fn();
+      controller.on(listener);
+      await controller.play(createTrack('1'));
+      listener.mockClear();
+
+      mockAudio._emit('seeking');
+      mockAudio._emit('seeked');
+
+      expect(listener).toHaveBeenNthCalledWith(1, {
+        type: 'activityChanged',
+        activity: 'seeking',
+      });
+      expect(listener).toHaveBeenNthCalledWith(2, {
+        type: 'activityChanged',
+        activity: 'idle',
+      });
     });
   });
 
@@ -283,7 +338,7 @@ describe('PlaybackController', () => {
       await controller.next();
 
       expect(controller.getCurrentIndex()).toBe(1);
-      expect(mockAdapter.getTrackUrl).toHaveBeenCalledWith('2');
+      expect(mockAdapter.getTrackUrl).toHaveBeenCalledWith('2', 'standard');
     });
 
     it('should stop at end of playlist in Sequential mode', async () => {
@@ -307,7 +362,7 @@ describe('PlaybackController', () => {
       await controller.next();
 
       expect(controller.getCurrentIndex()).toBe(0);
-      expect(mockAdapter.getTrackUrl).toHaveBeenCalledWith('1');
+      expect(mockAdapter.getTrackUrl).toHaveBeenCalledWith('1', 'standard');
     });
   });
 
@@ -347,7 +402,7 @@ describe('PlaybackController', () => {
       await controller.previous();
 
       expect(controller.getCurrentIndex()).toBe(1);
-      expect(mockAdapter.getTrackUrl).toHaveBeenCalledWith('2');
+      expect(mockAdapter.getTrackUrl).toHaveBeenCalledWith('2', 'standard');
     });
 
     it('should seek to beginning when at first track', async () => {
@@ -373,7 +428,7 @@ describe('PlaybackController', () => {
 
       // Wait for async next() to complete
       await vi.waitFor(() => {
-        expect(mockAdapter.getTrackUrl).toHaveBeenCalledWith('2');
+        expect(mockAdapter.getTrackUrl).toHaveBeenCalledWith('2', 'standard');
       });
     });
 
@@ -405,7 +460,7 @@ describe('PlaybackController', () => {
       mockAudio._emit('error');
 
       await vi.waitFor(() => {
-        expect(mockAdapter.getTrackUrl).toHaveBeenCalledWith('2');
+        expect(mockAdapter.getTrackUrl).toHaveBeenCalledWith('2', 'standard');
       });
     });
 

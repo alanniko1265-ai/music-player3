@@ -84,9 +84,10 @@ watch(() => props.src, () => {
 .cover-art {
   position: relative;
   overflow: hidden;
-  border-radius: var(--radius-md, 12px);
-  box-shadow: var(--shadow-base, 0 4px 12px rgba(0, 0, 0, 0.4));
-  background-color: var(--color-surface, #1A1A2E);
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--color-border, rgba(159, 247, 177, 0.14));
+  box-shadow: none;
+  background-color: var(--color-surface, #0d1610);
   flex-shrink: 0;
 
   &__image {
@@ -110,9 +111,9 @@ watch(() => props.src, () => {
     height: 100%;
     background: linear-gradient(
       90deg,
-      var(--color-surface, #1A1A2E) 25%,
-      var(--color-surface-hover, #222240) 50%,
-      var(--color-surface, #1A1A2E) 75%
+      var(--color-surface, #0d1610) 25%,
+      var(--color-surface-hover, #132117) 50%,
+      var(--color-surface, #0d1610) 75%
     );
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
@@ -124,13 +125,13 @@ watch(() => props.src, () => {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--color-surface, #1A1A2E);
+    background-color: var(--color-surface, #0d1610);
   }
 
   &__icon {
     width: 40%;
     height: 40%;
-    color: var(--color-text-secondary, #B3B3B3);
+    color: var(--color-primary, #9ff7b1);
     opacity: 0.6;
   }
 }

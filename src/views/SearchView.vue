@@ -1,85 +1,83 @@
 <template>
   <div class="search-view">
-    <!-- 搜索栏 -->
-    <div class="search-view__header">
-      <SearchInput
-        v-model="keyword"
-        :suggestions="suggestions"
-        :history="searchHistory"
-        @submit="onSearch"
-        @suggest="onSuggest"
-        @clear="onClear"
-      />
-    </div>
+    <section class="search-view__banner">
+      <div>
+        <div class="search-view__kicker">$ search</div>
+        <h1 class="search-view__title">曲库</h1>
+      </div>
+      <div class="search-view__stats">
+        <span>结果 {{ tracks.length }}</span>
+        <span v-if="currentKeyword">"{{ currentKeyword }}"</span>
+        <span v-else>idle</span>
+      </div>
+    </section>
 
-    <!-- 搜索结果区域 -->
+    <section class="search-view__toolbar">
+      <div class="search-view__toolbar-input">
+        <SearchInput
+          v-model="keyword"
+          :suggestions="suggestions"
+          :history="searchHistory"
+          @submit="onSearch"
+          @suggest="onSuggest"
+          @clear="onClear"
+        />
+      </div>
+    </section>
+
     <div
       ref="scrollContainerRef"
       class="search-view__content"
       @scroll="onScroll"
     >
-      <!-- 初始空状态（未搜索） -->
-      <div v-if="!hasSearched && !isLoading" class="search-view__initial">
-        <svg class="search-view__initial-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <circle cx="11" cy="11" r="8" />
-          <path d="M21 21l-4.35-4.35" />
-        </svg>
-        <p class="search-view__initial-text">搜索你喜欢的音乐</p>
+      <div v-if="!hasSearched && !isLoading" class="search-view__status">
+        <div class="search-view__status-box">[ 就绪 ]</div>
+        <p>输入歌曲、歌手或专辑开始搜索</p>
       </div>
 
-      <!-- 加载中（首次搜索） -->
-      <div v-else-if="isLoading && tracks.length === 0" class="search-view__loading">
-        <div class="search-view__spinner" aria-label="加载中"></div>
-        <p class="search-view__loading-text">搜索中...</p>
+      <div v-else-if="isLoading && tracks.length === 0" class="search-view__status">
+        <div class="search-view__status-box">[ 检索中 ]</div>
+        <p>正在搜索音乐源...</p>
       </div>
 
-      <!-- 错误状态 -->
-      <div v-else-if="error && tracks.length === 0" class="search-view__error">
-        <svg class="search-view__error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="8" x2="12" y2="12" />
-          <line x1="12" y1="16" x2="12.01" y2="16" />
-        </svg>
-        <p class="search-view__error-text">{{ error }}</p>
-        <button class="search-view__retry-btn" @click="retry" type="button">
-          重试
-        </button>
+      <div v-else-if="error && tracks.length === 0" class="search-view__status search-view__status--error">
+        <div class="search-view__status-box">[ 错误 ]</div>
+        <p>{{ error }}</p>
+        <button class="search-view__btn" type="button" @click="retry">[重试]</button>
       </div>
 
-      <!-- 无结果状态 -->
-      <div v-else-if="hasSearched && !isLoading && tracks.length === 0 && !error" class="search-view__empty">
-        <svg class="search-view__empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" />
-        </svg>
-        <p class="search-view__empty-text">未找到相关结果</p>
-        <p class="search-view__empty-hint">试试其他关键词</p>
+      <div v-else-if="hasSearched && !isLoading && tracks.length === 0 && !error" class="search-view__status">
+        <div class="search-view__status-box">[ 空 ]</div>
+        <p>没有找到匹配歌曲</p>
       </div>
 
-      <!-- 搜索结果列表 -->
       <div v-else class="search-view__results">
+        <div class="search-view__table-head">
+          <span>></span>
+          <span>标题</span>
+          <span>歌手</span>
+          <span>专辑</span>
+          <span>时长</span>
+          <span>操作</span>
+        </div>
+
         <TrackList
           :tracks="tracks"
           @play="onPlayTrack"
           @toggle-favorite="onToggleFavorite"
         />
 
-        <!-- 加载更多指示器 -->
-        <div v-if="isLoadingMore" class="search-view__load-more">
-          <div class="search-view__spinner search-view__spinner--small" aria-label="加载更多"></div>
-          <span class="search-view__load-more-text">加载更多...</span>
+        <div v-if="isLoadingMore" class="search-view__footer-state">
+          <span class="search-view__footer-pill">[ 加载更多 ]</span>
         </div>
 
-        <!-- 底部错误（加载更多失败） -->
-        <div v-else-if="error && tracks.length > 0" class="search-view__load-more-error">
-          <p class="search-view__load-more-error-text">{{ error }}</p>
-          <button class="search-view__retry-btn search-view__retry-btn--small" @click="loadMore" type="button">
-            重试
-          </button>
+        <div v-else-if="error && tracks.length > 0" class="search-view__footer-state search-view__footer-state--error">
+          <span class="search-view__footer-pill">[ 加载失败 ]</span>
+          <button class="search-view__btn" type="button" @click="loadMore">[重试]</button>
         </div>
 
-        <!-- 没有更多结果 -->
-        <div v-else-if="!hasMore && tracks.length > 0" class="search-view__no-more">
-          <p class="search-view__no-more-text">已加载全部结果</p>
+        <div v-else-if="!hasMore && tracks.length > 0" class="search-view__footer-state">
+          <span class="search-view__footer-pill">[ 到底了 ]</span>
         </div>
       </div>
     </div>
@@ -87,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onBeforeUnmount, watch } from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
 import type { Track } from '@/types'
 import SearchInput from '@/components/SearchInput.vue'
 import TrackList from '@/components/TrackList.vue'
@@ -98,7 +96,6 @@ import { usePlayerStore } from '@/stores/player-store'
 import { useFavoritesStore } from '@/stores/favorites-store'
 import { useQQMusicLoginStore } from '@/stores/qq-music-login-store'
 
-// ========== Services & Stores ==========
 const loginStore = useQQMusicLoginStore()
 const searchService = new SearchService(createQQAdapter())
 const playerStore = usePlayerStore()
@@ -117,7 +114,6 @@ watch(
   },
 )
 
-// ========== Reactive State ==========
 const keyword = ref('')
 const tracks = ref<Track[]>([])
 const suggestions = ref<string[]>([])
@@ -131,15 +127,8 @@ const currentPage = ref(1)
 const currentKeyword = ref('')
 const scrollContainerRef = ref<HTMLElement | null>(null)
 
-// ========== Initialize ==========
-// Load search history on mount
 searchHistory.value = searchService.getSearchHistory()
 
-// ========== Search Logic ==========
-
-/**
- * 执行搜索
- */
 async function onSearch(searchKeyword: string): Promise<void> {
   if (!searchKeyword.trim()) return
 
@@ -152,7 +141,6 @@ async function onSearch(searchKeyword: string): Promise<void> {
   error.value = null
   hasMore.value = false
 
-  // 添加到搜索历史
   searchService.addToHistory(trimmed)
   searchHistory.value = searchService.getSearchHistory()
 
@@ -168,9 +156,6 @@ async function onSearch(searchKeyword: string): Promise<void> {
   }
 }
 
-/**
- * 加载更多结果
- */
 async function loadMore(): Promise<void> {
   if (isLoadingMore.value || !hasMore.value || !currentKeyword.value) return
 
@@ -184,24 +169,18 @@ async function loadMore(): Promise<void> {
     hasMore.value = result.hasMore
     currentPage.value = nextPage
   } catch (err: any) {
-    error.value = err?.message || '加载更多失败，请稍后重试'
+    error.value = err?.message || '加载更多失败'
   } finally {
     isLoadingMore.value = false
   }
 }
 
-/**
- * 重试搜索
- */
 function retry(): void {
   if (currentKeyword.value) {
     onSearch(currentKeyword.value)
   }
 }
 
-/**
- * 获取搜索建议
- */
 async function onSuggest(value: string): Promise<void> {
   if (!value.trim()) {
     suggestions.value = []
@@ -211,56 +190,37 @@ async function onSuggest(value: string): Promise<void> {
   try {
     suggestions.value = await searchService.getSuggestions(value.trim())
   } catch {
-    // 搜索建议失败静默处理
     suggestions.value = []
   }
 }
 
-/**
- * 清空搜索
- */
 function onClear(): void {
   keyword.value = ''
   suggestions.value = []
 }
 
-// ========== Infinite Scroll ==========
-
-/**
- * 滚动事件处理：检测是否接近底部，触发加载更多
- */
 function onScroll(): void {
   if (!scrollContainerRef.value || !hasMore.value || isLoadingMore.value) return
 
   const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.value
-  const threshold = 200 // 距离底部 200px 时触发加载
+  const threshold = 200
 
   if (scrollTop + clientHeight >= scrollHeight - threshold) {
     loadMore()
   }
 }
 
-// ========== Track Actions ==========
-
-/**
- * 播放曲目
- */
 async function onPlayTrack(track: Track): Promise<void> {
-  // 将搜索结果设为播放队列
   playerStore.setPlaylist(tracks.value)
   await playerStore.playTrack(track)
 }
 
-/**
- * 切换收藏
- */
 async function onToggleFavorite(track: Track): Promise<void> {
   await favoritesStore.toggleFavorite(track)
 }
 
-// ========== Cleanup ==========
 onBeforeUnmount(() => {
-  // 清理工作（如有需要）
+  // Reserved for future cleanup.
 })
 </script>
 
@@ -268,211 +228,131 @@ onBeforeUnmount(() => {
 .search-view {
   display: flex;
   flex-direction: column;
+  flex: 1;
   height: 100%;
+  min-height: 0;
   overflow: hidden;
+  gap: 12px;
 
-  &__header {
-    padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-base);
-    flex-shrink: 0;
+  &__banner,
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--color-divider);
+    background: rgba(10, 13, 10, 0.44);
+  }
+
+  &__kicker,
+  &__stats,
+  &__toolbar-hint {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+  }
+
+  &__kicker {
+    color: var(--color-accent);
+    letter-spacing: 0;
+  }
+
+  &__title {
+    margin: 2px 0 0;
+    font-size: var(--font-size-xl);
+  }
+
+  &__stats {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  &__toolbar-input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__toolbar-hint {
+    white-space: nowrap;
   }
 
   &__content {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
-    padding: 0 var(--spacing-lg) var(--spacing-lg);
+    background: rgba(8, 10, 8, 0.38);
   }
 
-  // 初始空状态
-  &__initial {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: var(--spacing-2xl) var(--spacing-base);
-    min-height: 300px;
-  }
-
-  &__initial-icon {
-    width: 64px;
-    height: 64px;
+  &__status {
+    min-height: 100%;
+    display: grid;
+    place-items: center;
+    gap: 10px;
+    padding: 28px;
     color: var(--color-text-secondary);
-    opacity: 0.4;
-    margin-bottom: var(--spacing-base);
-  }
-
-  &__initial-text {
-    font-size: var(--font-size-md);
-    color: var(--color-text-secondary);
-    margin: 0;
-  }
-
-  // 加载状态
-  &__loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: var(--spacing-2xl) var(--spacing-base);
-    min-height: 300px;
-  }
-
-  &__loading-text {
-    font-size: var(--font-size-base);
-    color: var(--color-text-secondary);
-    margin: var(--spacing-base) 0 0;
-  }
-
-  // 加载动画
-  &__spinner {
-    width: 36px;
-    height: 36px;
-    border: 3px solid var(--color-border);
-    border-top-color: var(--color-primary);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-
-    &--small {
-      width: 20px;
-      height: 20px;
-      border-width: 2px;
-    }
-  }
-
-  // 错误状态
-  &__error {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: var(--spacing-2xl) var(--spacing-base);
-    min-height: 300px;
-  }
-
-  &__error-icon {
-    width: 48px;
-    height: 48px;
-    color: var(--color-error);
-    opacity: 0.8;
-    margin-bottom: var(--spacing-base);
-  }
-
-  &__error-text {
-    font-size: var(--font-size-base);
-    color: var(--color-text-secondary);
-    margin: 0 0 var(--spacing-base);
     text-align: center;
-  }
 
-  // 重试按钮
-  &__retry-btn {
-    padding: var(--spacing-sm) var(--spacing-lg);
-    background: var(--color-primary);
-    color: var(--color-text);
-    border: none;
-    border-radius: var(--radius-full);
-    font-size: var(--font-size-base);
-    font-weight: var(--font-weight-medium);
-    cursor: pointer;
-    transition: background var(--transition-fast), transform var(--transition-fast);
-
-    &:hover {
-      background: var(--color-primary-hover);
-      transform: scale(1.02);
+    p {
+      margin: 0;
     }
 
-    &:active {
-      background: var(--color-primary-active);
-      transform: scale(0.98);
-    }
-
-    &--small {
-      padding: var(--spacing-xs) var(--spacing-base);
-      font-size: var(--font-size-sm);
+    &--error {
+      color: var(--color-error);
     }
   }
 
-  // 无结果状态
-  &__empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: var(--spacing-2xl) var(--spacing-base);
-    min-height: 300px;
+  &__status-box,
+  &__footer-pill {
+    color: var(--color-primary);
   }
 
-  &__empty-icon {
-    width: 48px;
-    height: 48px;
-    color: var(--color-text-secondary);
-    opacity: 0.4;
-    margin-bottom: var(--spacing-base);
-  }
-
-  &__empty-text {
-    font-size: var(--font-size-md);
-    color: var(--color-text-secondary);
-    margin: 0 0 var(--spacing-xs);
-  }
-
-  &__empty-hint {
-    font-size: var(--font-size-sm);
-    color: var(--color-text-disabled);
-    margin: 0;
-  }
-
-  // 搜索结果
   &__results {
     display: flex;
     flex-direction: column;
+    min-height: 100%;
   }
 
-  // 加载更多
-  &__load-more {
+  &__table-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 18px minmax(120px, 1.2fr) minmax(100px, 0.9fr) minmax(100px, 1fr) 56px 156px;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--color-divider);
+    color: var(--color-primary);
+    background: rgba(8, 10, 8, 0.96);
+    font-size: var(--font-size-xs);
+    letter-spacing: 0;
+  }
+
+  &__footer-state {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-lg) 0;
-  }
-
-  &__load-more-text {
-    font-size: var(--font-size-sm);
+    gap: 12px;
+    padding: 16px;
+    border-top: 1px solid var(--color-divider);
     color: var(--color-text-secondary);
+
+    &--error {
+      color: var(--color-error);
+    }
   }
 
-  // 加载更多错误
-  &__load-more-error {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: var(--spacing-base) 0;
-    gap: var(--spacing-sm);
-  }
+  &__btn {
+    padding: 8px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: rgba(18, 24, 18, 0.56);
+    color: var(--color-text-secondary);
 
-  &__load-more-error-text {
-    font-size: var(--font-size-sm);
-    color: var(--color-error);
-    margin: 0;
-  }
-
-  // 没有更多
-  &__no-more {
-    display: flex;
-    justify-content: center;
-    padding: var(--spacing-lg) 0;
-  }
-
-  &__no-more-text {
-    font-size: var(--font-size-sm);
-    color: var(--color-text-disabled);
-    margin: 0;
-  }
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+    &:hover {
+      color: var(--color-text);
+      border-color: var(--color-primary);
+    }
   }
 }
 </style>

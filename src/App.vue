@@ -1,104 +1,131 @@
 <template>
   <div id="app">
-    <!-- Network status banner -->
     <NetworkBanner />
-
-    <!-- Global blur background -->
     <BlurBackground :cover-url="playerStore.currentTrack?.coverUrl" />
 
-    <!-- Sidebar navigation -->
-    <nav class="sidebar" aria-label="主导航">
-      <div class="sidebar__logo">
-        <svg class="sidebar__logo-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-        </svg>
-        <span class="sidebar__title">Music</span>
+    <div class="terminal-shell">
+      <header class="terminal-shell__topbar">
+        <div class="terminal-shell__window">
+          <span class="terminal-shell__dot terminal-shell__dot--red"></span>
+          <span class="terminal-shell__dot terminal-shell__dot--yellow"></span>
+          <span class="terminal-shell__dot terminal-shell__dot--green"></span>
+        </div>
+
+        <div class="terminal-shell__title">
+          <span class="terminal-shell__prompt">$</span>
+          <span class="terminal-shell__title-text">music --ui=minimal</span>
+        </div>
+
+        <div class="terminal-shell__status">
+          <span>{{ panelLabel }}</span>
+          <span v-if="playerStore.currentTrack">now {{ playerStore.currentTrack.title }}</span>
+          <span v-else>idle</span>
+        </div>
+
+        <div class="terminal-shell__controls">
+          <button class="terminal-shell__control terminal-shell__control--min" type="button" aria-label="最小化" @click="minimizeWindow">_</button>
+          <button class="terminal-shell__control terminal-shell__control--max" type="button" aria-label="最大化" @click="toggleMaximizeWindow">[]</button>
+          <button class="terminal-shell__control terminal-shell__control--close" type="button" aria-label="关闭" @click="closeWindow">x</button>
+        </div>
+      </header>
+
+      <div class="terminal-shell__body">
+        <nav class="sidebar" aria-label="主导航">
+          <div class="sidebar__task">
+            <span class="sidebar__task-prompt">$</span>
+            <span class="sidebar__task-label">task</span>
+            <span class="sidebar__task-value">{{ panelLabel }}</span>
+          </div>
+
+          <ul class="sidebar__menu">
+            <li>
+              <router-link
+                to="/"
+                class="sidebar__link"
+                :class="{ 'sidebar__link--active': isActive('search') }"
+                aria-label="搜索"
+              >
+                <span class="sidebar__index">01</span>
+                <span class="sidebar__label">搜索</span>
+              </router-link>
+            </li>
+            <li>
+              <router-link
+                to="/playlists"
+                class="sidebar__link"
+                :class="{ 'sidebar__link--active': isActive('playlists') || isActive('playlist-detail') }"
+                aria-label="歌单"
+              >
+                <span class="sidebar__index">02</span>
+                <span class="sidebar__label">歌单</span>
+              </router-link>
+            </li>
+            <li>
+              <router-link
+                to="/favorites"
+                class="sidebar__link"
+                :class="{ 'sidebar__link--active': isActive('favorites') }"
+                aria-label="收藏"
+              >
+                <span class="sidebar__index">03</span>
+                <span class="sidebar__label">收藏</span>
+              </router-link>
+            </li>
+            <li>
+              <router-link
+                to="/player"
+                class="sidebar__link"
+                :class="{ 'sidebar__link--active': isActive('player') }"
+                aria-label="正在播放"
+              >
+                <span class="sidebar__index">04</span>
+                <span class="sidebar__label">正在播放</span>
+              </router-link>
+            </li>
+          </ul>
+
+          <div class="sidebar__meta">
+            <div class="sidebar__meta-block">
+              <div class="sidebar__meta-title">source</div>
+              <MusicSourceSelector @change="setMusicSource" />
+            </div>
+            <div class="sidebar__meta-block">
+              <div class="sidebar__meta-title">session</div>
+              <QQMusicUserStatus />
+              <NeteaseUserStatus />
+            </div>
+          </div>
+        </nav>
+
+        <main class="main-content">
+          <div class="main-content__frame">
+            <div class="main-content__header">
+              <span class="main-content__line">$ open {{ panelLabel }}</span>
+              <span class="main-content__hint">terminal music player</span>
+            </div>
+
+            <router-view v-slot="{ Component }">
+              <transition name="fade-slide" mode="out-in">
+                <component :is="Component" />
+              </transition>
+            </router-view>
+          </div>
+        </main>
       </div>
+    </div>
 
-      <ul class="sidebar__menu">
-        <li>
-          <router-link
-            to="/"
-            class="sidebar__link"
-            :class="{ 'sidebar__link--active': isActive('search') }"
-            aria-label="搜索"
-          >
-            <svg class="sidebar__icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
-            </svg>
-            <span class="sidebar__label">搜索</span>
-          </router-link>
-        </li>
-        <li>
-          <router-link
-            to="/playlists"
-            class="sidebar__link"
-            :class="{ 'sidebar__link--active': isActive('playlists') || isActive('playlist-detail') }"
-            aria-label="歌单"
-          >
-            <svg class="sidebar__icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z" />
-            </svg>
-            <span class="sidebar__label">歌单</span>
-          </router-link>
-        </li>
-        <li>
-          <router-link
-            to="/favorites"
-            class="sidebar__link"
-            :class="{ 'sidebar__link--active': isActive('favorites') }"
-            aria-label="收藏"
-          >
-            <svg class="sidebar__icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-            </svg>
-            <span class="sidebar__label">收藏</span>
-          </router-link>
-        </li>
-        <li>
-          <router-link
-            to="/player"
-            class="sidebar__link"
-            :class="{ 'sidebar__link--active': isActive('player') }"
-            aria-label="播放中"
-          >
-            <svg class="sidebar__icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
-            </svg>
-            <span class="sidebar__label">播放中</span>
-          </router-link>
-        </li>
-      </ul>
-
-      <div class="sidebar__bottom">
-        <MusicSourceSelector @change="setMusicSource" />
-        <QQMusicUserStatus />
-        <NeteaseUserStatus />
-      </div>
-    </nav>
-
-    <!-- Main content area -->
-    <main class="main-content">
-      <router-view v-slot="{ Component }">
-        <transition name="fade-slide" mode="out-in">
-          <component :is="Component" />
-        </transition>
-      </router-view>
-    </main>
-
-    <!-- Bottom player bar -->
     <PlayerBar />
 
     <transition name="fade-slide">
       <div v-if="sessionToastVisible" class="session-toast">
-        QQ 音乐登录已过期
+        [警告] QQ 音乐登录已过期
       </div>
     </transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePlayerStore } from '@/stores/player-store'
 import { useQQMusicLoginStore } from '@/stores/qq-music-login-store'
@@ -118,7 +145,23 @@ const { initialize, setMusicSource } = useAppInit()
 const sessionToastVisible = ref(false)
 let sessionToastTimer: ReturnType<typeof setTimeout> | null = null
 
-// 应用启动时初始化所有 store 并恢复状态
+const panelLabel = computed(() => {
+  switch (route.name) {
+    case 'search':
+      return '搜索'
+    case 'playlists':
+      return '歌单'
+    case 'playlist-detail':
+      return '歌单详情'
+    case 'favorites':
+      return '收藏'
+    case 'player':
+      return '正在播放'
+    default:
+      return '面板'
+  }
+})
+
 onMounted(() => {
   initialize()
 })
@@ -143,144 +186,299 @@ watch(
 function isActive(routeName: string): boolean {
   return route.name === routeName
 }
+
+function minimizeWindow(): void {
+  window.electronAPI?.minimizeWindow?.()
+}
+
+function toggleMaximizeWindow(): void {
+  window.electronAPI?.toggleMaximizeWindow?.()
+}
+
+function closeWindow(): void {
+  window.electronAPI?.closeWindow?.()
+}
 </script>
 
 <style lang="scss">
 #app {
   width: 100%;
   height: 100vh;
-  background-color: var(--color-background);
+  background: var(--color-background);
   color: var(--color-text);
   font-family: var(--font-family);
   overflow: hidden;
   display: flex;
+  flex-direction: column;
   position: relative;
+  padding: 0;
 }
 
-// ===== Sidebar =====
-.sidebar {
-  width: 200px;
-  height: 100vh;
-  padding: var(--spacing-lg) 0;
-  display: flex;
-  flex-direction: column;
-  background: rgba(13, 13, 13, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-right: 1px solid var(--color-border);
+.terminal-shell {
+  position: relative;
   z-index: 1;
-  flex-shrink: 0;
-  padding-bottom: 72px;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  background: rgba(7, 9, 7, 0.98);
+  overflow: hidden;
 
-  &__logo {
-    display: flex;
+  &__topbar {
+    display: grid;
+    grid-template-columns: auto auto 1fr auto;
     align-items: center;
-    gap: var(--spacing-sm);
-    padding: 0 var(--spacing-lg);
-    margin-bottom: var(--spacing-xl);
+    gap: 12px;
+    min-height: 40px;
+    padding: 0 0 0 16px;
+    border-bottom: 1px solid var(--color-border);
+    background: rgba(10, 13, 10, 0.98);
+    -webkit-app-region: drag;
   }
 
-  &__logo-icon {
-    width: 28px;
-    height: 28px;
-    color: var(--color-primary);
+  &__window {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+
+    &--red { background: #ff5f57; }
+    &--yellow { background: #febc2e; }
+    &--green { background: #28c840; }
   }
 
   &__title {
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-bold);
+    display: flex;
+    align-items: center;
+    gap: 8px;
     color: var(--color-text);
+    font-size: var(--font-size-base);
+    letter-spacing: 0;
+  }
+
+  &__prompt {
+    color: var(--color-accent);
+    font-size: 18px;
+  }
+
+  &__title-text {
+    white-space: nowrap;
+  }
+
+  &__status {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 18px;
+    min-width: 0;
+    padding-right: 8px;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+    overflow: hidden;
+
+    span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  &__controls {
+    display: flex;
+    align-items: stretch;
+    justify-self: end;
+    height: 100%;
+    -webkit-app-region: no-drag;
+  }
+
+  &__control {
+    width: 44px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border-left: 1px solid var(--color-divider);
+    color: var(--color-text-secondary);
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+
+    &:hover {
+      background: rgba(18, 24, 18, 0.9);
+      color: var(--color-text);
+    }
+
+    &--close:hover {
+      background: rgba(112, 36, 36, 0.9);
+      color: #fff;
+    }
+  }
+
+  &__body {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+    min-height: 0;
+    flex: 1;
+  }
+}
+
+.sidebar {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding: 14px 12px;
+  border-right: 1px solid var(--color-border);
+  background: rgba(11, 15, 12, 0.9);
+
+  &__task {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px 12px;
+    border-bottom: 1px solid var(--color-divider);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+  }
+
+  &__task-prompt {
+    color: var(--color-accent);
+  }
+
+  &__task-label {
+    color: var(--color-text-disabled);
+  }
+
+  &__task-value {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--color-text);
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__menu {
-    list-style: none;
-    margin: 0;
-    padding: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-xs);
-  }
-
-  &__bottom {
-    margin-top: auto;
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
+    gap: 4px;
   }
 
   &__link {
-    display: flex;
+    display: grid;
+    grid-template-columns: 30px 1fr;
     align-items: center;
-    gap: var(--spacing-md);
-    padding: var(--spacing-md) var(--spacing-lg);
+    gap: 8px;
+    padding: 9px 10px;
+    border-left: 2px solid transparent;
     color: var(--color-text-secondary);
     text-decoration: none;
-    border-radius: 0;
-    transition: color var(--transition-fast), background-color var(--transition-fast);
-    position: relative;
+    transition: border-color var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast);
 
     &:hover {
       color: var(--color-text);
-      background: var(--color-surface-hover);
+      border-left-color: var(--color-divider);
+      background: rgba(18, 24, 18, 0.52);
     }
 
     &--active {
       color: var(--color-text);
-      background: var(--color-surface);
-
-      &::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 3px;
-        height: 60%;
-        background: var(--color-primary);
-        border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-      }
+      border-left-color: var(--color-primary);
+      background: rgba(18, 24, 18, 0.72);
     }
   }
 
-  &__icon {
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
+  &__index {
+    color: var(--color-accent);
+    font-size: var(--font-size-sm);
   }
 
   &__label {
     font-size: var(--font-size-base);
-    font-weight: var(--font-weight-medium);
+    letter-spacing: 0;
+  }
+
+  &__meta {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  &__meta-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-divider);
+  }
+
+  &__meta-title {
+    color: var(--color-accent);
+    font-size: var(--font-size-xs);
+    letter-spacing: 0;
   }
 }
 
-// ===== Main Content =====
 .main-content {
-  flex: 1;
-  height: 100vh;
-  overflow-y: auto;
-  padding-bottom: 72px;
-  position: relative;
-  z-index: 1;
-  scroll-behavior: smooth;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+
+  &__frame {
+    display: flex;
+    flex: 1;
+    min-height: 100%;
+    flex-direction: column;
+    background: rgba(8, 10, 8, 0.76);
+    overflow: hidden;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+  }
+
+  &__line {
+    color: var(--color-primary);
+  }
+
+  &__hint {
+    white-space: nowrap;
+  }
+
+  > .main-content__frame > *:last-child {
+    flex: 1;
+    min-height: 0;
+  }
 }
 
 .session-toast {
   position: fixed;
   right: 24px;
-  bottom: 96px;
-  z-index: 20;
-  max-width: min(320px, calc(100vw - 48px));
+  bottom: 108px;
+  z-index: var(--z-toast);
+  max-width: min(360px, calc(100vw - 48px));
   padding: 12px 16px;
-  border-radius: 8px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text);
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.34);
-  font-size: 14px;
+  border: 1px solid rgba(255, 122, 122, 0.38);
+  border-radius: var(--radius-base);
+  background: rgba(30, 10, 10, 0.92);
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
 }
 
-// ===== Route Transition =====
 .fade-slide-enter-active,
 .fade-slide-leave-active {
   transition: opacity var(--transition-base), transform var(--transition-base);
@@ -294,5 +492,121 @@ function isActive(routeName: string): boolean {
 .fade-slide-leave-to {
   opacity: 0;
   transform: translateY(-8px);
+}
+
+@media (max-width: 1360px) {
+  .terminal-shell {
+    &__topbar {
+      grid-template-columns: auto 1fr auto;
+      gap: 12px;
+    }
+
+    &__status {
+      display: none;
+    }
+
+    &__body {
+      grid-template-columns: 184px minmax(0, 1fr);
+    }
+  }
+
+  .sidebar {
+    padding: 12px 10px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .terminal-shell {
+    &__topbar {
+      padding-left: 12px;
+    }
+
+    &__title-text {
+      font-size: var(--font-size-sm);
+    }
+
+    &__body {
+      grid-template-columns: 152px minmax(0, 1fr);
+    }
+  }
+
+  .sidebar {
+    gap: 10px;
+    padding: 10px 8px;
+
+    &__menu {
+      display: flex;
+      gap: 4px;
+    }
+
+    &__link {
+      grid-template-columns: 26px minmax(0, 1fr);
+      justify-items: start;
+      gap: 7px;
+      padding: 8px;
+    }
+
+    &__meta {
+      margin-top: auto;
+      display: flex;
+      gap: 12px;
+    }
+  }
+
+  .main-content {
+    &__header {
+      gap: 12px;
+    }
+
+    &__hint {
+      display: none;
+    }
+  }
+}
+
+@media (max-width: 760px) {
+  .terminal-shell {
+    &__topbar {
+      grid-template-columns: auto 1fr auto;
+      gap: 8px;
+      min-height: 42px;
+    }
+
+    &__window {
+      gap: 6px;
+    }
+
+    &__dot {
+      width: 8px;
+      height: 8px;
+    }
+
+    &__title-text {
+      display: none;
+    }
+
+    &__control {
+      width: 42px;
+      height: 42px;
+    }
+
+    &__body {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+  }
+
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+
+    &__menu {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    &__meta {
+      grid-template-columns: 1fr;
+    }
+  }
 }
 </style>

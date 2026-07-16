@@ -4,16 +4,12 @@
       v-if="loginStore.isLoggedIn && loginStore.userInfo"
       class="netease-user__profile"
       type="button"
-      title="退出网易云音乐"
+      title="Logout Netease"
       @click="logout"
     >
-      <img class="netease-user__avatar" :src="loginStore.userInfo.avatarUrl" alt="" />
+      <span class="netease-user__prefix">wy</span>
       <span class="netease-user__name">{{ loginStore.userInfo.nickname }}</span>
-      <svg class="netease-user__icon" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-        <path d="m16 17 5-5-5-5" />
-        <path d="M21 12H9" />
-      </svg>
+      <span class="netease-user__status">logout</span>
     </button>
 
     <button
@@ -23,12 +19,8 @@
       :class="{ 'netease-user__login--expired': loginStore.isExpired }"
       @click="dialogOpen = true"
     >
-      <svg class="netease-user__icon" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M9 12h6" />
-        <path d="M12 9v6" />
-        <rect x="3" y="3" width="18" height="18" rx="3" />
-      </svg>
-      <span>{{ loginStore.isExpired ? '重新登录' : '网易云登录' }}</span>
+      <span class="netease-user__prefix">wy</span>
+      <span>{{ loginStore.isExpired ? 'session expired' : 'login required' }}</span>
     </button>
 
     <NeteaseLoginDialog v-model="dialogOpen" />
@@ -50,65 +42,48 @@ async function logout(): Promise<void> {
 
 <style scoped lang="scss">
 .netease-user {
-  padding: 0 var(--spacing-base);
-  margin-top: var(--spacing-sm);
-
   &__profile,
   &__login {
     width: 100%;
-    min-height: 42px;
-    display: flex;
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) auto;
     align-items: center;
     gap: 10px;
-    border: 0;
-    border-radius: 8px;
-    background: var(--color-surface);
-    color: var(--color-text);
-    cursor: pointer;
     padding: 8px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: rgba(8, 10, 8, 0.58);
+    color: var(--color-text-secondary);
     text-align: left;
-    transition: background var(--transition-fast), color var(--transition-fast);
 
     &:hover {
-      background: var(--color-surface-hover);
+      color: var(--color-text);
+      border-color: var(--color-primary);
     }
   }
 
   &__login {
-    justify-content: center;
-    color: var(--color-text-secondary);
-
-    &--expired {
-      color: var(--color-error);
-    }
+    grid-template-columns: 28px minmax(0, 1fr);
   }
 
-  &__avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    flex: 0 0 auto;
-    background: var(--color-background);
+  &__login--expired {
+    color: var(--color-error);
+  }
+
+  &__prefix {
+    color: var(--color-accent);
+    text-transform: uppercase;
   }
 
   &__name {
     min-width: 0;
-    flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 13px;
   }
 
-  &__icon {
-    width: 18px;
-    height: 18px;
-    flex: 0 0 auto;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+  &__status {
+    font-size: var(--font-size-xs);
   }
 }
 </style>

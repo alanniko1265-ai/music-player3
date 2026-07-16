@@ -12,6 +12,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Window management
   minimizeToTray: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_MINIMIZE_TO_TRAY),
   restoreWindow: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_RESTORE),
+  minimizeWindow: () => ipcRenderer.send('window:minimize'),
+  toggleMaximizeWindow: () => ipcRenderer.send('window:toggle-maximize'),
+  closeWindow: () => ipcRenderer.send('window:close'),
 
   // Network status listener
   onNetworkStatusChanged: (callback: (online: boolean) => void) => {

@@ -7,10 +7,13 @@ import type { Track, PlaybackState } from '../types/index';
 import { PlayMode, AudioQuality } from '../types/index';
 import type { MusicAPIAdapter } from './music-api-adapter';
 
+export type PlaybackActivity = 'idle' | 'loading' | 'buffering' | 'seeking';
+
 /** 播放控制器事件类型 */
 export type PlaybackEvent =
   | { type: 'stateChanged'; state: PlaybackState }
   | { type: 'trackChanged'; track: Track | null }
+  | { type: 'activityChanged'; activity: PlaybackActivity }
   | { type: 'error'; message: string }
   | { type: 'ended' };
 
@@ -32,6 +35,7 @@ export interface IPlaybackController {
   setApiAdapter(apiAdapter: MusicAPIAdapter): void;
   setQuality(quality: AudioQuality): void;
   getCurrentState(): PlaybackState;
+  getAudioElement(): HTMLAudioElement;
   getPlaylist(): Track[];
   getCurrentIndex(): number;
   on(listener: PlaybackEventListener): void;
@@ -53,11 +57,17 @@ export class PlaybackController implements IPlaybackController {
   private playMode: PlayMode = PlayMode.Sequential;
   private isPlaying: boolean = false;
   private quality: AudioQuality = AudioQuality.Standard;
+  private activity: PlaybackActivity = 'idle';
   private listeners: PlaybackEventListener[] = [];
 
   constructor(apiAdapter: MusicAPIAdapter, audio?: HTMLAudioElement) {
     this.apiAdapter = apiAdapter;
     this.audio = audio || new Audio();
+    try {
+      this.audio.crossOrigin = 'anonymous';
+    } catch {
+      // Ignore cross-origin assignment failures in mocked/test audio elements.
+    }
     this.volume = 80;
     this.audio.volume = this.volume / 100;
     this.setupAudioEventListeners();
@@ -86,6 +96,7 @@ export class PlaybackController implements IPlaybackController {
     if (this.isPlaying) {
       this.audio.pause();
       this.isPlaying = false;
+      this.setActivity('idle');
       this.emitStateChanged();
     }
   }
@@ -106,6 +117,7 @@ export class PlaybackController implements IPlaybackController {
     this.isPlaying = false;
     this.currentTrack = null;
     this.currentIndex = -1;
+    this.setActivity('idle');
     this.emitStateChanged();
     this.emit({ type: 'trackChanged', track: null });
   }
@@ -206,6 +218,11 @@ export class PlaybackController implements IPlaybackController {
     };
   }
 
+  /** Expose the internal audio element for visualizers and advanced UI surfaces. */
+  getAudioElement(): HTMLAudioElement {
+    return this.audio;
+  }
+
   /** 获取当前播放队列 */
   getPlaylist(): Track[] {
     return [...this.playlist];
@@ -240,27 +257,70 @@ export class PlaybackController implements IPlaybackController {
   private setupAudioEventListeners(): void {
     this.handleEnded = this.handleEnded.bind(this);
     this.handleError = this.handleError.bind(this);
+    this.handleWaiting = this.handleWaiting.bind(this);
+    this.handlePlaying = this.handlePlaying.bind(this);
+    this.handleStalled = this.handleStalled.bind(this);
+    this.handleSeeking = this.handleSeeking.bind(this);
+    this.handleSeeked = this.handleSeeked.bind(this);
     this.audio.addEventListener('ended', this.handleEnded);
     this.audio.addEventListener('error', this.handleError);
+    this.audio.addEventListener('waiting', this.handleWaiting);
+    this.audio.addEventListener('playing', this.handlePlaying);
+    this.audio.addEventListener('stalled', this.handleStalled);
+    this.audio.addEventListener('seeking', this.handleSeeking);
+    this.audio.addEventListener('seeked', this.handleSeeked);
   }
 
   /** 移除 Audio 事件监听 */
   private removeAudioEventListeners(): void {
     this.audio.removeEventListener('ended', this.handleEnded);
     this.audio.removeEventListener('error', this.handleError);
+    this.audio.removeEventListener('waiting', this.handleWaiting);
+    this.audio.removeEventListener('playing', this.handlePlaying);
+    this.audio.removeEventListener('stalled', this.handleStalled);
+    this.audio.removeEventListener('seeking', this.handleSeeking);
+    this.audio.removeEventListener('seeked', this.handleSeeked);
   }
 
   /** 处理播放结束事件 */
   private async handleEnded(): Promise<void> {
+    this.setActivity('idle');
     this.emit({ type: 'ended' });
     await this.next();
   }
 
   /** 处理播放错误事件 */
   private async handleError(): Promise<void> {
+    this.setActivity('idle');
     const trackTitle = this.currentTrack?.title || '未知歌曲';
     this.emit({ type: 'error', message: `"${trackTitle}" 无法播放，正在跳转下一首` });
     await this.next();
+  }
+
+  private handleWaiting(): void {
+    if (this.currentTrack) {
+      this.setActivity('buffering');
+    }
+  }
+
+  private handlePlaying(): void {
+    this.setActivity('idle');
+  }
+
+  private handleStalled(): void {
+    if (this.currentTrack) {
+      this.setActivity('buffering');
+    }
+  }
+
+  private handleSeeking(): void {
+    if (this.currentTrack) {
+      this.setActivity('seeking');
+    }
+  }
+
+  private handleSeeked(): void {
+    this.setActivity('idle');
   }
 
   /**
@@ -270,14 +330,17 @@ export class PlaybackController implements IPlaybackController {
   private async loadAndPlay(track: Track): Promise<void> {
     this.currentTrack = track;
     this.emit({ type: 'trackChanged', track });
+    this.setActivity('loading');
 
     try {
       const url = await this.apiAdapter.getTrackUrl(track.id, this.quality);
       this.audio.src = url;
       await this.audio.play();
       this.isPlaying = true;
+      this.setActivity('idle');
       this.emitStateChanged();
     } catch (error) {
+      this.setActivity('idle');
       // 音源 URL 无效时自动跳转下一首并提示
       this.emit({
         type: 'error',
@@ -294,6 +357,12 @@ export class PlaybackController implements IPlaybackController {
         this.emitStateChanged();
       }
     }
+  }
+
+  private setActivity(activity: PlaybackActivity): void {
+    if (this.activity === activity) return;
+    this.activity = activity;
+    this.emit({ type: 'activityChanged', activity });
   }
 
   /**

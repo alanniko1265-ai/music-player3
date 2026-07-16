@@ -11,13 +11,13 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const dominantColor = ref<string>('rgba(29, 185, 84, 0.8)')
-const defaultColor = 'rgba(29, 185, 84, 0.8)'
+const dominantColor = ref<string>('rgba(159, 247, 177, 0.12)')
+const defaultColor = 'rgba(159, 247, 177, 0.12)'
 
 const backgroundStyle = computed(() => ({
-  background: `linear-gradient(135deg, ${dominantColor.value} 0%, var(--color-background, #0D0D0D) 100%)`,
-  filter: 'blur(80px)',
-  opacity: 0.6,
+  background: `radial-gradient(circle at top right, ${dominantColor.value} 0%, transparent 26%), linear-gradient(160deg, rgba(159, 247, 177, 0.025) 0%, var(--color-background, #070907) 70%)`,
+  filter: 'blur(64px)',
+  opacity: 0.16,
 }))
 
 /**
@@ -75,7 +75,7 @@ function extractDominantColor(imageUrl: string): Promise<string> {
         g = Math.round(g / count)
         b = Math.round(b / count)
 
-        resolve(`rgba(${r}, ${g}, ${b}, 0.8)`)
+        resolve(`rgba(${r}, ${g}, ${b}, 0.12)`)
       } catch {
         resolve(defaultColor)
       }

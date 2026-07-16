@@ -75,12 +75,13 @@ function onToggleFavorite(track: Track) {
 
 <style scoped lang="scss">
 .track-list {
+  min-height: 0;
   width: 100%;
 
   &__items {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-xs);
+    gap: 0;
   }
 
   &__empty {
