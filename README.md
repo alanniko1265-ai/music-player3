@@ -13,7 +13,9 @@
 - 🔍 歌曲搜索、在线播放、收藏管理
 - 🎤 歌词同步显示（滚动歌词面板）
 - 🎚️ 播放模式切换（顺序播放 / 随机播放 / 单曲循环）
-- 📋 播放列表管理（创建、编辑、删除、拖拽排序、导入导出）
+- 📋 播放列表管理（创建、编辑、删除、拖拽排序、导入导出、搜索过滤）
+- 📜 播放队列管理（查看和管理待播放列表）
+- 🎤 歌手目录浏览
 - ⭐ 收藏夹管理（独立于播放列表的收藏系统）
 
 ### 音频可视化
@@ -84,6 +86,8 @@ music-player3/
 │   │   ├── SearchView.vue          # 搜索结果页
 │   │   ├── PlaylistView.vue        # 播放列表页
 │   │   ├── PlaylistDetailView.vue  # 播放列表详情
+│   │   ├── QueueView.vue           # 播放队列页
+│   │   ├── ArtistDirectoryView.vue # 歌手目录页
 │   │   └── FavoritesView.vue       # 收藏夹页
 │   │
 │   ├── stores/                     # Pinia 状态管理
@@ -109,6 +113,10 @@ music-player3/
 │   │
 │   ├── composables/                # 组合式 API
 │   │   └── useAppInit.ts           # 应用初始化逻辑
+│   │
+│   ├── utils/                      # 工具函数
+│   │   ├── artist-directory.ts     # 歌手目录数据整理
+│   │   └── playlist-search.ts      # 播放列表搜索过滤
 │   │
 │   ├── types/                      # TypeScript 类型定义
 │   │   ├── ipc.ts                  # IPC 通道类型

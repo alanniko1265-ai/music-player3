@@ -7,3 +7,4 @@ QQMusicApi/
 *.log
 .kiro/
 *.tsbuildinfo
+tmp/
