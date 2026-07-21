@@ -8,3 +8,4 @@ QQMusicApi/
 .kiro/
 *.tsbuildinfo
 tmp/
+.vscode/
